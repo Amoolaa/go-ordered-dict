@@ -1,5 +1,7 @@
 # go-ordered-dict
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/amoolaa/go-ordered-dict.svg)](https://pkg.go.dev/github.com/amoolaa/go-ordered-dict)
+
 A thread-safe ordered dictionary implementation in Go that maintains insertion order while providing O(1) lookups, inserts, and deletes.
 
 ## Installation
