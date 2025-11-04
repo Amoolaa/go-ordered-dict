@@ -1,4 +1,4 @@
-package main
+package ordered_dict
 
 import (
 	"sync"
@@ -515,5 +515,393 @@ func TestZeroValues(t *testing.T) {
 	val, ok = od.Get("")
 	if !ok || val != 42 {
 		t.Error("empty key failed")
+	}
+}
+
+func TestClear(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+	od.Set("c", 3)
+
+	if od.Len() != 3 {
+		t.Errorf("expected len=3, got %d", od.Len())
+	}
+
+	od.Clear()
+
+	if od.Len() != 0 {
+		t.Errorf("expected len=0 after clear, got %d", od.Len())
+	}
+
+	if od.Has("a") || od.Has("b") || od.Has("c") {
+		t.Error("keys should not exist after clear")
+	}
+
+	keys := od.Keys()
+	if len(keys) != 0 {
+		t.Errorf("expected 0 keys after clear, got %d", len(keys))
+	}
+
+	// Verify can add items after clear
+	od.Set("new", 100)
+	if od.Len() != 1 {
+		t.Errorf("expected len=1 after adding to cleared dict, got %d", od.Len())
+	}
+	val, ok := od.Get("new")
+	if !ok || val != 100 {
+		t.Error("failed to add item after clear")
+	}
+}
+
+func TestClearEmpty(t *testing.T) {
+	od := New[string, int]()
+	od.Clear()
+
+	if od.Len() != 0 {
+		t.Errorf("expected len=0, got %d", od.Len())
+	}
+}
+
+func TestRemove(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+	od.Set("c", 3)
+
+	ok := od.Remove("b")
+	if !ok {
+		t.Error("expected remove to succeed")
+	}
+	if od.Len() != 2 {
+		t.Errorf("expected len=2, got %d", od.Len())
+	}
+
+	if od.Has("b") {
+		t.Error("key b should not exist after remove")
+	}
+
+	keys := od.Keys()
+	expected := []string{"a", "c"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+}
+
+func TestRemoveNonexistent(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+
+	ok := od.Remove("nonexistent")
+	if ok {
+		t.Error("expected remove to return false for nonexistent key")
+	}
+	if od.Len() != 1 {
+		t.Errorf("expected len=1, got %d", od.Len())
+	}
+}
+
+func TestMoveToEnd(t *testing.T) {
+	od := New[string, int]()
+	od.Set("first", 1)
+	od.Set("second", 2)
+	od.Set("third", 3)
+
+	ok := od.MoveToEnd("first")
+	if !ok {
+		t.Error("expected MoveToEnd to succeed")
+	}
+
+	keys := od.Keys()
+	expected := []string{"second", "third", "first"}
+	if len(keys) != len(expected) {
+		t.Fatalf("expected %d keys, got %d", len(expected), len(keys))
+	}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+
+	// Verify value is preserved
+	val, ok := od.Get("first")
+	if !ok || val != 1 {
+		t.Error("value should be preserved after move")
+	}
+
+	// Verify length unchanged
+	if od.Len() != 3 {
+		t.Errorf("expected len=3, got %d", od.Len())
+	}
+}
+
+func TestMoveToEndAlreadyAtEnd(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+	od.Set("c", 3)
+
+	ok := od.MoveToEnd("c")
+	if !ok {
+		t.Error("expected MoveToEnd to succeed even when already at end")
+	}
+
+	keys := od.Keys()
+	expected := []string{"a", "b", "c"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+}
+
+func TestMoveToEndNonexistent(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+
+	ok := od.MoveToEnd("nonexistent")
+	if ok {
+		t.Error("expected MoveToEnd to return false for nonexistent key")
+	}
+
+	if od.Len() != 1 {
+		t.Errorf("expected len=1, got %d", od.Len())
+	}
+}
+
+func TestMoveToEndSingleElement(t *testing.T) {
+	od := New[string, int]()
+	od.Set("only", 42)
+
+	ok := od.MoveToEnd("only")
+	if !ok {
+		t.Error("expected MoveToEnd to succeed")
+	}
+
+	if od.Len() != 1 {
+		t.Errorf("expected len=1, got %d", od.Len())
+	}
+
+	keys := od.Keys()
+	if len(keys) != 1 || keys[0] != "only" {
+		t.Error("single element should remain")
+	}
+}
+
+func TestMoveToStart(t *testing.T) {
+	od := New[string, int]()
+	od.Set("first", 1)
+	od.Set("second", 2)
+	od.Set("third", 3)
+
+	ok := od.MoveToStart("third")
+	if !ok {
+		t.Error("expected MoveToStart to succeed")
+	}
+
+	keys := od.Keys()
+	expected := []string{"third", "first", "second"}
+	if len(keys) != len(expected) {
+		t.Fatalf("expected %d keys, got %d", len(expected), len(keys))
+	}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+
+	// Verify value is preserved
+	val, ok := od.Get("third")
+	if !ok || val != 3 {
+		t.Error("value should be preserved after move")
+	}
+
+	// Verify length unchanged
+	if od.Len() != 3 {
+		t.Errorf("expected len=3, got %d", od.Len())
+	}
+}
+
+func TestMoveToStartAlreadyAtStart(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+	od.Set("c", 3)
+
+	ok := od.MoveToStart("a")
+	if !ok {
+		t.Error("expected MoveToStart to succeed even when already at start")
+	}
+
+	keys := od.Keys()
+	expected := []string{"a", "b", "c"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+}
+
+func TestMoveToStartNonexistent(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+
+	ok := od.MoveToStart("nonexistent")
+	if ok {
+		t.Error("expected MoveToStart to return false for nonexistent key")
+	}
+
+	if od.Len() != 1 {
+		t.Errorf("expected len=1, got %d", od.Len())
+	}
+}
+
+func TestMoveToStartSingleElement(t *testing.T) {
+	od := New[string, int]()
+	od.Set("only", 42)
+
+	ok := od.MoveToStart("only")
+	if !ok {
+		t.Error("expected MoveToStart to succeed")
+	}
+
+	if od.Len() != 1 {
+		t.Errorf("expected len=1, got %d", od.Len())
+	}
+
+	keys := od.Keys()
+	if len(keys) != 1 || keys[0] != "only" {
+		t.Error("single element should remain")
+	}
+}
+
+func TestMoveAfter(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+	od.Set("c", 3)
+	od.Set("d", 4)
+
+	// Move "a" after "c": should become b, c, a, d
+	ok := od.MoveAfter("a", "c")
+	if !ok {
+		t.Error("expected MoveAfter to succeed")
+	}
+
+	keys := od.Keys()
+	expected := []string{"b", "c", "a", "d"}
+	if len(keys) != len(expected) {
+		t.Fatalf("expected %d keys, got %d", len(expected), len(keys))
+	}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+
+	// Verify value is preserved
+	val, ok := od.Get("a")
+	if !ok || val != 1 {
+		t.Error("value should be preserved after move")
+	}
+
+	// Verify length unchanged
+	if od.Len() != 4 {
+		t.Errorf("expected len=4, got %d", od.Len())
+	}
+}
+
+func TestMoveAfterToEnd(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+	od.Set("c", 3)
+
+	// Move "a" after "c" (last element): should become b, c, a
+	ok := od.MoveAfter("a", "c")
+	if !ok {
+		t.Error("expected MoveAfter to succeed")
+	}
+
+	keys := od.Keys()
+	expected := []string{"b", "c", "a"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+}
+
+func TestMoveAfterAdjacentElements(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+	od.Set("c", 3)
+
+	// Move "c" after "a": should become a, c, b
+	ok := od.MoveAfter("c", "a")
+	if !ok {
+		t.Error("expected MoveAfter to succeed")
+	}
+
+	keys := od.Keys()
+	expected := []string{"a", "c", "b"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+}
+
+func TestMoveAfterNonexistentKey(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+
+	ok := od.MoveAfter("nonexistent", "a")
+	if ok {
+		t.Error("expected MoveAfter to return false for nonexistent key")
+	}
+
+	if od.Len() != 2 {
+		t.Errorf("expected len=2, got %d", od.Len())
+	}
+
+	// Order should be unchanged
+	keys := od.Keys()
+	expected := []string{"a", "b"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+}
+
+func TestMoveAfterSameKey(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+	od.Set("c", 3)
+
+	// Move "b" after "b" - edge case
+	ok := od.MoveAfter("b", "b")
+	if !ok {
+		t.Error("expected MoveAfter to succeed")
+	}
+
+	if od.Len() != 3 {
+		t.Errorf("expected len=3, got %d", od.Len())
+	}
+
+	// After moving "b" after itself (which was deleted first),
+	// the order becomes: a, c, b (b moved to after where it used to be)
+	keys := od.Keys()
+	expected := []string{"a", "c", "b"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
 	}
 }
