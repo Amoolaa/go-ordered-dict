@@ -1,4 +1,4 @@
-package ordered_dict
+package ordereddict
 
 import (
 	"sync"

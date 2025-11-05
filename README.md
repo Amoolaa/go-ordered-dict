@@ -19,12 +19,12 @@ package main
 
 import (
     "fmt"
-    ordered_dict "github.com/amoolaa/go-ordered-dict"
+    "github.com/amoolaa/go-ordered-dict"
 )
 
 func main() {
     // Create a new ordered dictionary
-    dict := ordered_dict.New[string, int]()
+    dict := ordereddict.New[string, int]()
 
     // Add items
     dict.Set("first", 1)
@@ -71,7 +71,7 @@ for key, val := range dict.All() {
 ### Reordering Items
 
 ```go
-dict := ordered_dict.New[string, string]()
+dict := ordereddict.New[string, string]()
 dict.Set("a", "first")
 dict.Set("b", "second")
 dict.Set("c", "third")
@@ -93,7 +93,7 @@ fmt.Println(dict.Keys()) // ["b", "a", "c"]
 
 ```go
 // Create dictionary with pre-allocated capacity
-dict := ordered_dict.NewWithCapacity[string, int](100)
+dict := ordereddict.NewWithCapacity[string, int](100)
 ```
 
 ## Features
