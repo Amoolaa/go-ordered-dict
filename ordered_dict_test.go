@@ -905,3 +905,271 @@ func TestMoveAfterSameKey(t *testing.T) {
 		}
 	}
 }
+
+func TestMerge(t *testing.T) {
+	od1 := New[string, int]()
+	od1.Set("a", 1)
+	od1.Set("b", 2)
+
+	od2 := New[string, int]()
+	od2.Set("c", 3)
+	od2.Set("d", 4)
+
+	od1.Merge(od2)
+
+	if od1.Len() != 4 {
+		t.Errorf("expected len=4, got %d", od1.Len())
+	}
+
+	keys := od1.Keys()
+	expected := []string{"a", "b", "c", "d"}
+	if len(keys) != len(expected) {
+		t.Fatalf("expected %d keys, got %d", len(expected), len(keys))
+	}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+
+	expectedValues := map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}
+	for key, expectedVal := range expectedValues {
+		val, ok := od1.Get(key)
+		if !ok {
+			t.Errorf("key %s not found", key)
+		}
+		if val != expectedVal {
+			t.Errorf("key %s: expected value=%d, got %d", key, expectedVal, val)
+		}
+	}
+}
+
+func TestMergeOverlappingKeys(t *testing.T) {
+	od1 := New[string, int]()
+	od1.Set("a", 1)
+	od1.Set("b", 2)
+	od1.Set("c", 3)
+
+	od2 := New[string, int]()
+	od2.Set("b", 20)
+	od2.Set("c", 30)
+	od2.Set("d", 4)
+
+	od1.Merge(od2)
+
+	if od1.Len() != 4 {
+		t.Errorf("expected len=4, got %d", od1.Len())
+	}
+
+	// Order should be: a, b, c, d (existing keys maintain position)
+	keys := od1.Keys()
+	expected := []string{"a", "b", "c", "d"}
+	if len(keys) != len(expected) {
+		t.Fatalf("expected %d keys, got %d", len(expected), len(keys))
+	}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+
+	// Values should be updated
+	expectedValues := map[string]int{"a": 1, "b": 20, "c": 30, "d": 4}
+	for key, expectedVal := range expectedValues {
+		val, ok := od1.Get(key)
+		if !ok {
+			t.Errorf("key %s not found", key)
+		}
+		if val != expectedVal {
+			t.Errorf("key %s: expected value=%d, got %d", key, expectedVal, val)
+		}
+	}
+}
+
+func TestMergeEmpty(t *testing.T) {
+	od1 := New[string, int]()
+	od1.Set("a", 1)
+	od1.Set("b", 2)
+
+	od2 := New[string, int]()
+
+	od1.Merge(od2)
+
+	if od1.Len() != 2 {
+		t.Errorf("expected len=2, got %d", od1.Len())
+	}
+
+	keys := od1.Keys()
+	expected := []string{"a", "b"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+}
+
+func TestMergeIntoEmpty(t *testing.T) {
+	od1 := New[string, int]()
+
+	od2 := New[string, int]()
+	od2.Set("a", 1)
+	od2.Set("b", 2)
+
+	od1.Merge(od2)
+
+	if od1.Len() != 2 {
+		t.Errorf("expected len=2, got %d", od1.Len())
+	}
+
+	keys := od1.Keys()
+	expected := []string{"a", "b"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+
+	expectedValues := map[string]int{"a": 1, "b": 2}
+	for key, expectedVal := range expectedValues {
+		val, ok := od1.Get(key)
+		if !ok {
+			t.Errorf("key %s not found", key)
+		}
+		if val != expectedVal {
+			t.Errorf("key %s: expected value=%d, got %d", key, expectedVal, val)
+		}
+	}
+}
+
+func TestMergeBothEmpty(t *testing.T) {
+	od1 := New[string, int]()
+	od2 := New[string, int]()
+
+	od1.Merge(od2)
+
+	if od1.Len() != 0 {
+		t.Errorf("expected len=0, got %d", od1.Len())
+	}
+}
+
+func TestMergeNil(t *testing.T) {
+	od1 := New[string, int]()
+	od1.Set("a", 1)
+
+	od1.Merge(nil)
+
+	if od1.Len() != 1 {
+		t.Errorf("expected len=1, got %d", od1.Len())
+	}
+
+	val, ok := od1.Get("a")
+	if !ok || val != 1 {
+		t.Error("original data should be unchanged")
+	}
+}
+
+func TestMergeOrderPreservation(t *testing.T) {
+	od1 := New[string, int]()
+	od1.Set("a", 1)
+
+	od2 := New[string, int]()
+	od2.Set("z", 26)
+	od2.Set("y", 25)
+	od2.Set("x", 24)
+
+	od1.Merge(od2)
+
+	// New keys should be added in the order they appear in od2
+	keys := od1.Keys()
+	expected := []string{"a", "z", "y", "x"}
+	if len(keys) != len(expected) {
+		t.Fatalf("expected %d keys, got %d", len(expected), len(keys))
+	}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+}
+
+func TestMergeSelf(t *testing.T) {
+	od := New[string, int]()
+	od.Set("a", 1)
+	od.Set("b", 2)
+	od.Set("c", 3)
+
+	od.Merge(od)
+
+	// Length should remain the same
+	if od.Len() != 3 {
+		t.Errorf("expected len=3, got %d", od.Len())
+	}
+
+	// Order should remain the same
+	keys := od.Keys()
+	expected := []string{"a", "b", "c"}
+	for i, key := range keys {
+		if key != expected[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expected[i], key)
+		}
+	}
+
+	// Values should remain the same
+	expectedValues := map[string]int{"a": 1, "b": 2, "c": 3}
+	for key, expectedVal := range expectedValues {
+		val, ok := od.Get(key)
+		if !ok {
+			t.Errorf("key %s not found", key)
+		}
+		if val != expectedVal {
+			t.Errorf("key %s: expected value=%d, got %d", key, expectedVal, val)
+		}
+	}
+}
+
+func TestMergeConcurrent(t *testing.T) {
+	od1 := New[int, int]()
+	for i := range 50 {
+		od1.Set(i, i)
+	}
+
+	od2 := New[int, int]()
+	for i := 50; i < 100; i++ {
+		od2.Set(i, i)
+	}
+
+	var wg sync.WaitGroup
+
+	// Multiple goroutines merging
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			od1.Merge(od2)
+		}()
+	}
+
+	// Multiple goroutines reading
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range 100 {
+				od1.Get(j)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	if od1.Len() != 100 {
+		t.Errorf("expected len=100, got %d", od1.Len())
+	}
+
+	// Verify all keys exist
+	for i := range 100 {
+		if !od1.Has(i) {
+			t.Errorf("key %d should exist", i)
+		}
+	}
+}

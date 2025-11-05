@@ -165,6 +165,36 @@ func (o *OrderedDict[K, V]) Clear() {
 	clear(o.data)
 }
 
+// Merge merges another OrderedDict into this one.
+// If keys already exist, their values are updated while maintaining their position.
+// New keys are added at the end in the order they appear in the other dict.
+func (o *OrderedDict[K, V]) Merge(other *OrderedDict[K, V]) {
+	if other == nil {
+		return
+	}
+
+	// If merging with self, nothing to do
+	if o == other {
+		return
+	}
+
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	other.mu.RLock()
+	defer other.mu.RUnlock()
+
+	for curr := other.head.next; curr != other.tail; curr = curr.next {
+		if existing, ok := o.data[curr.key]; ok {
+			existing.val = curr.val
+		} else {
+			n := &node[K, V]{key: curr.key, val: curr.val}
+			o.linkToEnd(n)
+			o.data[curr.key] = n
+			o.len++
+		}
+	}
+}
+
 func (o *OrderedDict[K, V]) linkToEnd(n *node[K, V]) {
 	prevTail := o.tail.prev
 	n.prev = prevTail
