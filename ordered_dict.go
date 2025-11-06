@@ -264,6 +264,7 @@ func (o *OrderedDict[K, V]) MoveAfter(key K, after K) bool {
 	return true
 }
 
+// String pretty prints the ordered dict.
 func (o *OrderedDict[K, V]) String() string {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
