@@ -48,7 +48,24 @@ func main() {
     if val, ok := dict.Delete("second"); ok {
         fmt.Println("Deleted:", val)
     }
+
+    // Pretty print the dictionary
+    fmt.Println(dict) // Output: OrderedDict[first:1 third:3]
 }
+```
+
+### Pretty Printing
+
+The `String()` method implements the `Stringer` interface, allowing you to easily print the dictionary in a format similar to Go's built-in maps:
+
+```go
+dict := ordereddict.New[string, int]()
+dict.Set("apple", 1)
+dict.Set("banana", 2)
+dict.Set("cherry", 3)
+
+fmt.Println(dict)  // Output: OrderedDict[apple:1 banana:2 cherry:3]
+fmt.Printf("Dict: %v\n", dict)  // Also works with Printf
 ```
 
 ### Iterating Over Items
@@ -104,3 +121,4 @@ dict := ordereddict.NewWithCapacity[string, int](100)
 - Maintains insertion order
 - Ability to reorder items
 - Iterator support (Go 1.23+)
+- Pretty printing via `String()` method (implements `fmt.Stringer`)

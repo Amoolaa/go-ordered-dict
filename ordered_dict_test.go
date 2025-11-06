@@ -1173,3 +1173,70 @@ func TestMergeConcurrent(t *testing.T) {
 		}
 	}
 }
+
+func TestString(t *testing.T) {
+	t.Run("empty dict", func(t *testing.T) {
+		od := New[string, int]()
+		result := od.String()
+		expected := "OrderedDict[]"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		od := New[string, int]()
+		od.Set("apple", 1)
+		result := od.String()
+		expected := "OrderedDict[apple:1]"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("multiple elements", func(t *testing.T) {
+		od := New[string, int]()
+		od.Set("apple", 1)
+		od.Set("banana", 2)
+		od.Set("cherry", 3)
+		result := od.String()
+		expected := "OrderedDict[apple:1 banana:2 cherry:3]"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("preserves insertion order", func(t *testing.T) {
+		od := New[string, string]()
+		od.Set("z", "last")
+		od.Set("a", "first")
+		od.Set("m", "middle")
+		result := od.String()
+		expected := "OrderedDict[z:last a:first m:middle]"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("int keys and values", func(t *testing.T) {
+		od := New[int, int]()
+		od.Set(1, 100)
+		od.Set(2, 200)
+		result := od.String()
+		expected := "OrderedDict[1:100 2:200]"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("with zero values", func(t *testing.T) {
+		od := New[string, int]()
+		od.Set("zero", 0)
+		od.Set("one", 1)
+		result := od.String()
+		expected := "OrderedDict[zero:0 one:1]"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+}

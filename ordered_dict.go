@@ -1,7 +1,9 @@
 package ordereddict
 
 import (
+	"fmt"
 	"iter"
+	"strings"
 	"sync"
 )
 
@@ -260,4 +262,25 @@ func (o *OrderedDict[K, V]) MoveAfter(key K, after K) bool {
 	o.unlinkNode(node)
 	o.linkAfter(node, afterNode)
 	return true
+}
+
+func (o *OrderedDict[K, V]) String() string {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	if o.len == 0 {
+		return "OrderedDict[]"
+	}
+
+	var sb strings.Builder
+	sb.WriteString("OrderedDict[")
+	first := true
+	for curr := o.head.next; curr != o.tail; curr = curr.next {
+		if !first {
+			sb.WriteString(" ")
+		}
+		fmt.Fprintf(&sb, "%v:%v", curr.key, curr.val)
+		first = false
+	}
+	sb.WriteString("]")
+	return sb.String()
 }
